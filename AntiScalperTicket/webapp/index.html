@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti Scalper Ticket</title>
+    <script type="module" src="ethers.min.js"></script>
+</head>
+<body>
+    <h1>Anti Scalper Ticket System</h1>
+    <button id="connectButton">連接 MetaMask</button>
+    <div id="status"></div>
+
+    <div id="adminSection" style="display: none;">
+        <h2>管理員功能</h2>
+        <h3>設定票價</h3>
+        <input type="number" id="ticketPrice" placeholder="票價 (ETH)">
+        <button id="setTicketPriceButton">設定票價</button>
+
+        <h3>設定最大票數</h3>
+        <input type="number" id="maxTickets" placeholder="最大票數">
+        <button id="setMaxTicketsButton">設定最大票數</button>
+
+        <h3>設定售票時間</h3>
+        <input type="datetime-local" id="startSaleTime">
+        <input type="datetime-local" id="endSaleTime">
+        <button id="setSaleTimeButton">設定售票時間</button>
+
+        <h3>設定票券使用時間</h3>
+        <input type="datetime-local" id="startUseTime">
+        <input type="datetime-local" id="endUseTime">
+        <button id="setUseTimeButton">設定使用時間</button>
+
+        <h3>提領合約金額</h3>
+        <button id="withdrawFundsButton">提領合約餘額</button>
+    </div>
+
+    <h2>一般功能</h2>
+    <h3>購買票券</h3>
+    <button id="buyTicketButton">購買票券</button>
+
+    <h3>查詢用戶擁有的票券</h3>
+    <input type="text" id="queryAddress" placeholder="輸入用戶地址">
+    <button id="queryTicketButton">查詢票券 ID</button>
+    <p>用戶票券 ID: <span id="userTicketId"></span></p>
+
+    <h3>使用票券</h3>
+    <input type="number" id="useTicketId" placeholder="票券 ID">
+    <button id="useTicketButton">使用票券</button>
+
+    <h3>退票</h3>
+    <input type="number" id="refundTicketId" placeholder="票券 ID">
+    <button id="refundTicketButton">退票</button>
+
+    <h3>檢查票券使用狀態</h3>
+    <input type="number" id="checkTicketId" placeholder="票券 ID">
+    <button id="checkTicketButton">檢查票券</button>
+    <p>票券狀態: <span id="ticketStatus"></span></p>
+
+    <script type="module">
+        import { ethers } from "./ethers.min.js";
+
+        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+        const contractABI = [
+        {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "ContractReset",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "buyTicket",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "ticketId",
+          "type": "uint256"
+        }
+      ],
+      "name": "checkTicket",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "endSaleTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "endUseTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "hasPurchased",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "isTicketUsed",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxTickets",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "ticketId",
+          "type": "uint256"
+        }
+      ],
+      "name": "refundTicket",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "resetContract",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_maxTickets",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMaxTickets",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_start",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_end",
+          "type": "uint256"
+        }
+      ],
+      "name": "setSaleTime",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_price",
+          "type": "uint256"
+        }
+      ],
+      "name": "setTicketPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_start",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_end",
+          "type": "uint256"
+        }
+      ],
+      "name": "setUseTime",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startSaleTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startUseTime",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "ticketOwner",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ticketPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ticketsSold",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "ticketId",
+          "type": "uint256"
+        }
+      ],
+      "name": "useTicket",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "withdrawFunds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+        ];
+
+        let provider, signer, contract, currentAccount;
+
+        // 管理員地址
+        const ADMIN_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
+        // 連接 MetaMask
+        document.getElementById("connectButton").onclick = async () => {
+            if (typeof window.ethereum !== "undefined") {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                currentAccount = await signer.getAddress();
+                document.getElementById("status").innerText = `已連接帳號: ${currentAccount}`;
+
+                if (currentAccount.toLowerCase() === ADMIN_ADDRESS.toLowerCase()) {
+                    document.getElementById("adminSection").style.display = "block";
+                }
+            } else {
+                alert("請安裝 MetaMask");
+            }
+        };
+
+        // 僅管理員功能
+        document.getElementById("setTicketPriceButton").onclick = async () => {
+        const price = document.getElementById("ticketPrice").value;
+        if (price && parseFloat(price) > 0) {
+            try {
+                const tx = await contract.setTicketPrice(ethers.parseUnits(price, "ether")); // 設置票價（轉為 Wei）
+                await tx.wait();
+                alert(`票價已設定為 ${price} ETH`);
+                } catch (error) {
+                    console.error("設定票價失敗", error);
+                    alert("設定票價失敗，請檢查管理員權限或輸入值");
+                }
+            } else {
+                alert("請輸入有效的票價");
+            }
+        };
+
+        document.getElementById("setMaxTicketsButton").onclick = async () => {
+            const maxTickets = document.getElementById("maxTickets").value;
+            if (maxTickets) {
+                try {
+                    const tx = await contract.setMaxTickets(maxTickets);
+                    await tx.wait();
+                    alert("最大票數已設定");
+                } catch (error) {
+                    console.error("設定最大票數失敗", error);
+                }
+            } else {
+                alert("請輸入最大票數");
+            }
+        };
+
+        document.getElementById("setSaleTimeButton").onclick = async () => {
+            const start = new Date(document.getElementById("startSaleTime").value).getTime() / 1000;
+            const end = new Date(document.getElementById("endSaleTime").value).getTime() / 1000;
+            if (start && end) {
+                try {
+                    const tx = await contract.setSaleTime(start, end);
+                    await tx.wait();
+                    alert("售票時間已設定");
+                } catch (error) {
+                    console.error("設定售票時間失敗", error);
+                }
+            } else {
+                alert("請選擇時間");
+            }
+        };
+
+        document.getElementById("setUseTimeButton").onclick = async () => {
+            const start = new Date(document.getElementById("startUseTime").value).getTime() / 1000;
+            const end = new Date(document.getElementById("endUseTime").value).getTime() / 1000;
+            if (start && end) {
+                try {
+                    const tx = await contract.setUseTime(start, end);
+                    await tx.wait();
+                    alert("票券使用時間已設定");
+                } catch (error) {
+                    console.error("設定票券使用時間失敗", error);
+                }
+            } else {
+                alert("請選擇時間");
+            }
+        };
+
+        document.getElementById("withdrawFundsButton").onclick = async () => {
+            try {
+                const tx = await contract.withdrawFunds();
+                await tx.wait();
+                alert("合約餘額已提領");
+            } catch (error) {
+                console.error("提領失敗", error);
+            }
+        };
+
+        // 一般功能
+        document.getElementById("buyTicketButton").onclick = async () => {
+            try {
+                // 獲取當前票價
+                const currentPrice = await contract.ticketPrice();
+                const ticketPriceInEther = ethers.formatEther(currentPrice.toString()); // 轉換為 ETH 格式
+
+                // 發送交易
+                const tx = await contract.buyTicket({ value: ethers.parseEther(ticketPriceInEther) });
+                await tx.wait();
+
+                alert(`票券已購買，價格為 ${ticketPriceInEther} ETH`);
+            } catch (error) {
+                console.error("購買票券失敗", error);
+                alert("購買失敗，請檢查票價或合約狀態");
+            }
+        };
+
+
+        document.getElementById("useTicketButton").onclick = async () => {
+            const ticketId = document.getElementById("useTicketId").value;
+            if (ticketId) {
+                try {
+                    const tx = await contract.useTicket(ticketId);
+                    await tx.wait();
+                    alert("票券已使用");
+                } catch (error) {
+                    console.error("使用票券失敗", error);
+                }
+            } else {
+                alert("請輸入票券 ID");
+            }
+        };
+
+        document.getElementById("refundTicketButton").onclick = async () => {
+            const ticketId = document.getElementById("refundTicketId").value;
+            if (ticketId) {
+                try {
+                    const tx = await contract.refundTicket(ticketId);
+                    await tx.wait();
+                    alert("票券已退回");
+                } catch (error) {
+                    console.error("退票失敗", error);
+                }
+            } else {
+                alert("請輸入票券 ID");
+            }
+        };
+
+        document.getElementById("checkTicketButton").onclick = async () => {
+            const ticketId = document.getElementById("checkTicketId").value;
+            if (ticketId) {
+                try {
+                    const status = await contract.checkTicket(ticketId);
+                    document.getElementById("ticketStatus").innerText = status ? "已使用" : "未使用";
+                } catch (error) {
+                    console.error("檢查票券失敗", error);
+                }
+            } else {
+                alert("請輸入票券 ID");
+            }
+        };
+        // 查詢用戶擁有的票券 ID
+        document.getElementById("queryTicketButton").onclick = async () => {
+            const address = document.getElementById("queryAddress").value;
+            if (ethers.isAddress(address)) { // 檢查是否為有效地址
+                try {
+                    const ticketId = await contract.ticketOwner(address);
+                    document.getElementById("userTicketId").innerText = ticketId > 0 ? ticketId : "沒有票券";
+                } catch (error) {
+                    console.error("查詢失敗", error);
+                    alert("查詢失敗，請確認地址是否正確");
+                }
+            } else {
+                alert("請輸入有效的地址");
+            }
+            
+  
+        };
+    </script>
+</body>
+</html>

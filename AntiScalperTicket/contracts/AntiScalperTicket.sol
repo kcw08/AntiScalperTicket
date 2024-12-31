@@ -38,7 +38,7 @@ contract AntiScalperTicket {
     }
 
 
-    // 僅在使用期間可執行
+    // 僅在有票卷可執行
     modifier onlyUnusedTicket(uint256 ticketId) {
         require(ticketOwner[msg.sender] == ticketId, "You do not own this ticket");
         require(!isTicketUsed[ticketId], "Ticket already used");
@@ -91,7 +91,6 @@ contract AntiScalperTicket {
     // 退票功能
     function refundTicket(uint256 ticketId) external onlyUnusedTicket(ticketId) onlyDuringSale {
         delete ticketOwner[msg.sender]; // 移除票券擁有者
-        nextTicketId--; // 票券 ID 減少
         ticketsSold--; // 已售票數減少
         hasPurchased[msg.sender] = false; // 設置用戶未購票
         isTicketUsed[ticketId] = false; // 設置票券未使用

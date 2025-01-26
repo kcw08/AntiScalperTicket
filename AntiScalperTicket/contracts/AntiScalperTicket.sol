@@ -38,7 +38,7 @@ contract AntiScalperTicket {
     }
 
 
-    // 僅在有票卷可執行
+    // 僅在有票卷可執行111
     modifier onlyUnusedTicket(uint256 ticketId) {
         require(ticketOwner[msg.sender] == ticketId, "You do not own this ticket");
         require(!isTicketUsed[ticketId], "Ticket already used");
